@@ -12,9 +12,13 @@ namespace Tetris_Clone_Redo
 {
     public partial class Form1 : Form
     {
-        Timer time = new Timer();
+        Timer time = new Timer()
+        {
+            Interval = 500,
+        };
         playPoint[,] playArea;
         PictureBox PlayAreaDisplay;
+        ShapeInstance Shape;
         public Form1()
         {
             InitializeComponent();
@@ -28,6 +32,13 @@ namespace Tetris_Clone_Redo
             BackColor = Color.Gainsboro;
             CenterToScreen();
             #endregion
+
+            #region Button And Labels
+            Press press = new Press(400,100,100,100);
+            addEvents(press.button);
+            Controls.Add(press.button);
+            #endregion
+
 
             #region GetPlayArea
             //self explanitory
@@ -47,6 +58,44 @@ namespace Tetris_Clone_Redo
             };
             Controls.Add(PlayAreaDisplay);
             #endregion
+
+            #region First Shape
+            Shape = new ShapeInstance(playArea);
+            foreach (ShapeInstance.Block i in Shape.Blocks)
+            { 
+                Controls.Add(i.square);
+            }
+            #endregion
+        }
+
+        private void addEvents(Button button)
+        {
+            button.Click += (sender, e) => { Button_Click(sender, e, button); };
+            time.Tick += Time_Tick;
+        }
+
+        private void Time_Tick(object sender, EventArgs e)
+        {
+            MoveDown();
+        }
+
+        private void Button_Click(object sender, EventArgs e, Button b)
+        {
+            b.Hide();
+            time.Start();
+        }
+
+        private void MoveDown()
+        {
+            Parallel.For(0, 4, i =>
+            {
+                Shape.Blocks[i].square.Location = playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos++].Location;
+                if (Shape.Blocks[i].ypos == 4)
+                {
+                    Shape.ActivateColour(Shape.Blocks[i]);
+                }
+            });
+
         }
     }
 }
