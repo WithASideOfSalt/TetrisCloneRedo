@@ -12,6 +12,7 @@ namespace Tetris_Clone_Redo
     {
         public Point Location;
         public bool Occupied;
+        public bool OccupiedByCurrentShape;
         public playPoint(int x, int y)
         { 
             Location = new Point(75+(x*25),(y*25)-25);
