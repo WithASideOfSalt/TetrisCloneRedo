@@ -121,7 +121,30 @@ namespace Tetris_Clone_Redo
                     }
                     break;
                 case Keys.Down:
-                    MoveDown();
+                    bool check = true;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (Shape.Blocks[i].ypos >= 22)
+                        {
+                            check = false;
+                            break;
+                        }
+                        else if ((playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos + 2].Occupied 
+                            && !playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos +2].OccupiedByCurrentShape)
+                            || (playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos + 1].Occupied
+                            && !playArea[Shape.Blocks[i].xpos,Shape.Blocks[i].ypos +1].OccupiedByCurrentShape))
+                        {
+                            check = false;
+                            break;
+                        }
+                    }
+                    if (check)
+                    {
+                        MoveDown();
+                    }
+                    break;
+                case Keys.Up:
+                    RotateShape();
                     break;
             }
         }
@@ -136,7 +159,10 @@ namespace Tetris_Clone_Redo
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
             KeyPressed = e;
-            worker.RunWorkerAsync();
+            if (!worker.IsBusy)
+            {
+                worker.RunWorkerAsync();
+            }
         }
 
         private void Time_Tick(object sender, EventArgs e)
@@ -152,6 +178,7 @@ namespace Tetris_Clone_Redo
 
         private void MoveDown()
         {
+            List<int> addedPositions = new List<int>();
             if (canMove(0))
             {
                 for (int i = 0; i < 4; i++)
@@ -168,15 +195,37 @@ namespace Tetris_Clone_Redo
                         Shape.Blocks[i].square.Location = playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos].Location;
                     }
 
-                    if (Shape.Blocks[i].ypos == 4)
+                    if (Shape.Blocks[i].ypos >= 4)
                     {
                         Shape.ActivateColour(Shape.Blocks[i]);
+                    }
+
+                    if (Shape.Blocks[i].ypos < 4)
+                    {
+                        Shape.Blocks[i].square.BackColor = Color.Gainsboro;
                     }
                 }
                 for (int i = 0; i < 4; i++)
                 {
                     playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos].OccupiedByCurrentShape = true;
+                    addedPositions.Add(Shape.Blocks[i].ypos);
                     playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos].Occupied = true;
+                }
+                for (int i =0; i < addedPositions.Count; i++)
+                {
+                    bool check = true;
+                    for (int x = 0; x < 10; x++)
+                    {
+                        if (!playArea[x,addedPositions[i]].Occupied)
+                        {
+                            check = false;
+                            break;
+                        }
+                    }
+                    if (check)
+                    {
+                        removeRow(addedPositions[i]);
+                    }
                 }
             }
             else 
@@ -213,10 +262,6 @@ namespace Tetris_Clone_Redo
                             return move;
                         }
                     }
-                    return move;
-
-                //Rotate Shape check
-                case 1:
                     return move;
                 //Shape Movement Check
                 case 2:
@@ -262,9 +307,124 @@ namespace Tetris_Clone_Redo
             return move;
         }
 
+        private bool canRotate(ref int[] UpdatedXPos, ref int[] UpdatedYPos)
+        {
+            bool check = true;
+            var temp = 0;
+            int xdifference;
+            int ydifference;
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (Shape.CentreIndex == -1)
+                {
+                    break;
+                }
+                xdifference = Shape.Blocks[Shape.CentreIndex].xpos - Shape.Blocks[i].xpos;
+                ydifference = Shape.Blocks[Shape.CentreIndex].ypos - Shape.Blocks[i].ypos;
+
+                UpdatedXPos[i] = Shape.Blocks[Shape.CentreIndex].xpos + ydifference;
+                UpdatedYPos[i] = Shape.Blocks[Shape.CentreIndex].ypos - xdifference;
+
+                if (UpdatedYPos[i] > 23)
+                {
+                    check = false;
+                    return check;
+                }
+                if (UpdatedXPos[i] < 0)
+                {
+                    temp = UpdatedXPos[i];
+                    for (int c = 0; c < 4; c++)
+                    {
+                        UpdatedXPos[c] -= temp;
+                    }
+                }
+                else if (UpdatedXPos[i] > 9)
+                {
+                    temp = UpdatedXPos[i] - 9;
+                    for (int c = 0; c < 4; c++)
+                    {
+                        UpdatedXPos[c] -= temp;
+                    }
+                }
+
+                else if (playArea[UpdatedXPos[i], UpdatedYPos[i]].Occupied && !playArea[UpdatedXPos[i], UpdatedYPos[i]].OccupiedByCurrentShape)
+                {
+                    check = false;
+                    return check;
+                }
+
+            }
+
+            for (int i =0; i < 4; i++)
+            {
+                UpdatedXPos[i] -= temp;
+            }
+            
+            return check;
+        }
+
+        private void removeRow(int row)
+        {
+            int[] remove = new int[10];
+            for (int c = 0; c< Controls.Count; c++)
+            {
+                for (int i = 0; i< 10; i++)
+                {
+                    if (Controls[c].Location == playArea[i, row].Location)
+                    {
+                        Controls[c].Invoke((MethodInvoker)delegate { Controls.RemoveAt(c); });
+                    }
+                }
+            }
+            for (int c = 0; c< Controls.Count; c++)
+            {
+                var t = typeof(Label);
+                if (t == Controls[c].GetType())
+                {
+                    Controls[c].Invoke((MethodInvoker)delegate { Controls[c].Location = new Point(Controls[c].Location.X, Controls[c].Location.Y + Controls[c].Height); });
+                }
+            }
+            for (int c =0; c< 10; c++)
+            {
+                playArea[c, row].OccupiedByCurrentShape = false;
+                playArea[c, row].Occupied = false;
+            }
+        }
+
+        private void RotateShape()
+        {
+            int[] UpdatedXPos = new int[4];
+            int[] UpdatedYPos = new int[4];
+
+            if (canRotate(ref UpdatedXPos, ref UpdatedYPos) && Shape.CentreIndex != -1)
+            {
+                for (int i = 0; i< 4; i++)
+                {
+                    if (Shape.Blocks[i].square.InvokeRequired)
+                    {
+                        playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos].OccupiedByCurrentShape = false;
+                        playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos].Occupied = false;
+
+                        Shape.Blocks[i].xpos = UpdatedXPos[i];
+                        Shape.Blocks[i].ypos = UpdatedYPos[i];
+
+                        Shape.Blocks[i].square.Invoke((MethodInvoker)delegate { Shape.Blocks[i].square.Location = playArea[UpdatedXPos[i], UpdatedYPos[i]].Location;});
+                    }
+                }
+                for (int i = 0; i< 4; i++)
+                {
+                    playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos].OccupiedByCurrentShape = true;
+                    playArea[Shape.Blocks[i].xpos, Shape.Blocks[i].ypos].Occupied = true;
+                }
+            }
+        }
+
         private void NextShape() 
         {
             Shape = null;
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
             Shape = new ShapeInstance(playArea);
             for (int i = 0; i < 4; i++)
             {
