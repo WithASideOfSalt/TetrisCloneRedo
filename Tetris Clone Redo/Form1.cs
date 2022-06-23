@@ -214,17 +214,17 @@ namespace Tetris_Clone_Redo
             }
             else
             {
-                if (addedPositions.Count > 0)
+                int numberOfRows = 0;
+                bool[] removeCheck = canRemove(addedPositions);
+                for (int i = 0; i < 4; i++)
                 {
-                    bool[] removeCheck = canRemove(addedPositions);
-                    for (int i = 0; i < 4; i++)
+                    if (removeCheck[i])
                     {
-                        if (removeCheck[i])
-                        {
-                            removeRow(addedPositions[i]);
-                        }
+                        removeRow(addedPositions[i] + numberOfRows);
+                        numberOfRows++;
                     }
                 }
+                
                 for (int c = 0; c < 4; c++)
                 {
                     playArea[Shape.Blocks[c].xpos, Shape.Blocks[c].ypos].OccupiedByCurrentShape = false;
@@ -245,41 +245,28 @@ namespace Tetris_Clone_Redo
                         int x = Shape.Blocks[i].xpos;
                         int y = Shape.Blocks[i].ypos;
 
+                        bool Equal = false;
+                        for (int c = 0; c < addedPositions.Count; c++)
+                        {
+                            if (addedPositions[c] == y)
+                            {
+                                Equal = true;
+                                break;
+                            }
+
+                        }
+                        if (!Equal)
+                        {
+                            addedPositions.Add(y);
+                        }
+
                         if (y == 23)
                         {
-                            bool Equal = false;
-                            for (int c = 0; c < addedPositions.Count; c++)
-                            {
-                                if (addedPositions[c] == y)
-                                {
-                                    Equal = true;
-                                    break;
-                                }
-
-                            }
-                            if (!Equal)
-                            {
-                                addedPositions.Add(y);
-                            }
                             move = false;
                         }
                         else if (!(playArea[x, y + 1].OccupiedByCurrentShape)
                                 && playArea[x, y + 1].Occupied)
                         {
-                            bool Equal = false;
-                            for (int c = 0; c< addedPositions.Count; c++)
-                            {
-                                if (addedPositions[c] == y)
-                                {
-                                    Equal = true;
-                                    break;
-                                }
-                                
-                            }
-                            if (!Equal)
-                            {
-                                addedPositions.Add(y);
-                            }
                             move = false;
                         }
                     }
@@ -366,6 +353,9 @@ namespace Tetris_Clone_Redo
                 UpdatedXPos[i] = Shape.Blocks[Shape.CentreIndex].xpos + ydifference;
                 UpdatedYPos[i] = Shape.Blocks[Shape.CentreIndex].ypos - xdifference;
 
+            }
+            for (int i =0; i < 4; i++)
+            {
                 if (UpdatedYPos[i] > 23)
                 {
                     check = false;
@@ -387,26 +377,22 @@ namespace Tetris_Clone_Redo
                         UpdatedXPos[c] -= temp;
                     }
                 }
-
-                else if (playArea[UpdatedXPos[i], UpdatedYPos[i]].Occupied && !playArea[UpdatedXPos[i], UpdatedYPos[i]].OccupiedByCurrentShape)
+            }
+            for (int i =0; i < 4; i++)
+            {
+                if (playArea[UpdatedXPos[i], UpdatedYPos[i]].Occupied && !playArea[UpdatedXPos[i], UpdatedYPos[i]].OccupiedByCurrentShape)
                 {
                     check = false;
                     return check;
                 }
-
             }
 
-            for (int i =0; i < 4; i++)
-            {
-                UpdatedXPos[i] -= temp;
-            }
             
             return check;
         }
 
         private void removeRow(int row)
         {
-            int[] remove = new int[10];
             for (int x = 0; x < 10; x++)
             {
                 for (int c = 0; c < Controls.Count; c++)
@@ -429,7 +415,7 @@ namespace Tetris_Clone_Redo
 
             for (int x = 0; x < 10; x++)
             {
-                for (int y = 4; y < 24; y++)
+                for (int y = 4; y < row; y++)
                 {
                     for (int c = 0; c < Controls.Count; c++)
                     {
@@ -443,18 +429,22 @@ namespace Tetris_Clone_Redo
                     }
                 }
             }
-
+            int modified = 0;
             for (int c=0; c< Controls.Count;c++)
             {
-                if (typeof(Label) == Controls[c].GetType())
+                if (typeof(Label) == Controls[c].GetType() && Controls[c].Location.Y < playArea[0,row].Location.Y)
                 {
                     Controls[c].Invoke((MethodInvoker)delegate { Controls[c].Location = new Point(Controls[c].Location.X, Controls[c].Location.Y + Controls[c].Height); });
+                    modified++;
                 }
             }
                     
             for (int e = 0; e < xpos.Count; e++)
             {
-                playArea[xpos[e], ypos[e]+1].Occupied = true;
+                if (ypos[e] < row)
+                {
+                    playArea[xpos[e], ypos[e] + 1].Occupied = true;
+                }
             }
                 
             
